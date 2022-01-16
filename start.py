@@ -7,13 +7,13 @@ import numpy as np
 import pandas as pd
 from functional import seq
 from numpy import int8
-import ast
+
 script_folder = Path(__file__).parent.resolve()
 print(script_folder)
 sys.path.append(str((script_folder / 'haddock-antibody')))
 sys.path.append(str((script_folder / 'haddock-tools')))
 import run
-from run import process_pdb
+from run import process_pdb, tidy_up
 from restrain_bodies import read_structure, build_restraints, calc_euclidean, get_bodies, generate_tbl
 
 calc_accessibility = __import__("calc-accessibility")
@@ -133,17 +133,17 @@ def access(pdb: str, cutoff: float):
 def access_command(pdb: str, cutoff: float = 0.15):
     return access(pdb, cutoff)
 
-def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: str = "/data/sources/haddock2.4", n_comp: str = 2, run_number: int =1 ):
-    return f'''AMBIG_TBL={str(ambig)}
-HADDOCK_DIR=f{haddock_dir}
+def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"), n_comp: str = 2, run_number: int =1 ):
+    return f'''AMBIG_TBL={str(ambig.resolve())}
+HADDOCK_DIR={haddock_dir.resolve()}
 N_COMP={n_comp}
 PDB_FILE1={str(a.resolve())}
 PDB_FILE2={str(b.resolve())}
-PROJECT_DIR={project}
+PROJECT_DIR={project.resolve()}
 PROT_SEGID_1=A
 PROT_SEGID_2=B
 RUN_NUMBER={run_number}
-UNAMBIG_TBL={str(unambig)}
+UNAMBIG_TBL={str(unambig.resolve())}
     '''
 
 @app.command()
@@ -160,7 +160,7 @@ UNAMBIG_TBL={str(unambig)}
 @click.option('--antigen_cutoff', default=0.15, help="access") #0.4 in the tutorial
 @click.option("--haddock_dir", default="/data/sources/haddock2.4", help="folder where haddock is located")
 @click.option("--n_comp", default =2, help = "N_COMP")
-@click.option("--run_number", default = 2, help = "run_number")
+@click.option("--run_number", default = 1, help = "run_number")
 def start(antibody: str, antigen: str, output: str,
         scheme: str, fvonly: bool, rename: bool,
         splitscfv: bool, chain: str,
@@ -184,7 +184,8 @@ def start(antibody: str, antigen: str, output: str,
     antibody_active_solv = intersection.tolist()
     with active_passive_antibody.open("w") as antibody_f:
         antibody_f.write(" ".join([str(i) for i in antibody_active_solv]) + "\n")
-    antigen_path = Path(antigen)
+    antigen_path = (output_path / Path(antigen).name.replace(".pdb", f"_tidy.pdb")).resolve()
+    tidy_up(Path(antigen), antigen_path)
     ares_antigen = access(str(result_pdb), antigen_cutoff)
     print("===========")
     ares_antigen_str = ' '.join([str(i) for i in ares_antigen])
@@ -196,9 +197,10 @@ def start(antibody: str, antigen: str, output: str,
     ambig = (output_path / "antibody-antigen-ambig.tbl")
     with ambig.open("w") as af:
         af.write(passive_active)
-    run_str = run_params(result_pdb, antigen_path, ambig, unambig, output_path, haddock_dir, n_comp, run_number)
+
+    run_str = run_params(result_pdb, antigen_path, ambig, unambig, output_path.absolute(), Path(haddock_dir), n_comp, run_number)
     run_file = (output_path / "run.param")
-    print("writing run parameters")
+    print(f"writing run parameters to {str(run_file)}")
     with run_file.open("w") as f:
         f.write(run_str)
     return run_file

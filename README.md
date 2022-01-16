@@ -14,7 +14,7 @@ and then inside of the container:
 ```bash
 pdb_fetch  4G6K > 4G6K.pdb
 pdb_fetch 4I1B > 4I1B.pdb
-run.py start --antibody 4G6K.pdb --antigen 4I1B.pdb --output output
+start.py start --antibody 4G6K.pdb --antigen 4I1B.pdb --output output
 ```
 Building container
 ------------------
