@@ -1,6 +1,6 @@
-[submodule "HADDOCK-antibody-antigen"]
-	path = HADDOCK-antibody-antigen
-	url = https://github.com/haddocking/HADDOCK-antibody-antigen
 [submodule "haddock-tools"]
 	path = haddock-tools
 	url = https://github.com/haddocking/haddock-tools
+[submodule "haddock-antibody"]
+	path = haddock-antibody
+	url = https://github.com/antonkulaga/HADDOCK-antibody-antigen

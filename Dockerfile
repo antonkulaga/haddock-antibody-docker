@@ -8,8 +8,8 @@ RUN git clone https://github.com/haddocking/haddock-tools
 WORKDIR $BASE/haddock-tools
 RUN make
 WORKDIR $BASE
-RUN git clone https://github.com/antonkulaga/HADDOCK-antibody-antigen
-ENV PATH="$PATH:$BASE/HADDOCK-antibody-antigen"
+RUN git clone https://github.com/antonkulaga/HADDOCK-antibody-antigen haddock-antibody
+ENV PATH="$PATH:$BASE/haddock-antibody"
 COPY environment.yaml $BASE/environment.yaml
 RUN micromamba env create -y -f $BASE/environment.yaml
 ENV ENV_NAME="haddock-antibody"
@@ -17,5 +17,5 @@ ENV PATH="$PATH:$BASE"
 RUN mkdir /data && chmod -R 777 /data
 VOLUME ["/data"]
 WORKDIR /data
-COPY run.py $BASE/run.py
-CMD python run.py
+COPY start.py $BASE/start.py
+CMD python start.py

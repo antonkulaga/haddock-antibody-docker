@@ -1,0 +1,209 @@
+#!/usr/bin/env python
+import sys
+import click
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from functional import seq
+from numpy import int8
+import ast
+script_folder = Path(__file__).parent.resolve()
+print(script_folder)
+sys.path.append(str((script_folder / 'haddock-antibody')))
+sys.path.append(str((script_folder / 'haddock-tools')))
+import run
+from run import process_pdb
+from restrain_bodies import read_structure, build_restraints, calc_euclidean, get_bodies, generate_tbl
+
+calc_accessibility = __import__("calc-accessibility")
+
+#rewrote in a proper way
+def active_passive_to_ambig(active1: list, passive1: list, active2: list, passive2: list, segid1='A', segid2='B'):
+    """Convert active and passive residues to Ambiguous Interaction Restraints
+
+    Parameters
+    ----------
+    active1 : list
+        List of active residue numbers of the first segid
+
+    passive1 : list
+        List of passive residue numbers of the first segid
+
+    passive2 : list
+        List of passive residue numbers of the second segid
+
+    active2 : list
+        List of active residue numbers of the second segid
+
+    active2 : list
+        List of passive residue numbers of the second segid
+
+    segid1 : string
+        Segid to use for the first model
+
+    segid2 : string
+        Segid to use for the second model
+
+    """
+
+    all1 = active1 + passive1
+    all2 = active2 + passive2
+    result = ""
+
+    for resi1 in active1:
+        result += 'assign (resi {:d} and segid {:s})\n'.format(resi1, segid1)
+        result += '(\n'
+        c = 0
+        for resi2 in all2:
+            result += '       (resi {:d} and segid {:s})\n'.format(resi2, segid2)
+            c += 1
+            if c != len(all2):
+                result += '        or\n'
+        result += ') 2.0 2.0 0.0\n'
+
+    for resi2 in active2:
+        result += 'assign (resi {:d} and segid {:s})\n'.format(resi2, segid2)
+        result += '(\n'
+        c = 0
+        for resi1 in all1:
+            result += '       (resi {:d} and segid {:s})\n'.format(resi1, segid1)
+            c += 1
+            if c != len(all1):
+                result += '        or\n'
+
+        result += ') 2.0 2.0 0.0\n'
+    return result
+
+def make_tbl(atom_lst: list, restraints: list) -> str:
+    """
+    Makes a list of TBL-formatted restraints.
+    """
+    result: str = ""
+    for r in restraints:
+        i, j = r
+        atom_i, atom_j = atom_lst[i], atom_lst[j]
+        dist_ij = calc_euclidean(atom_i[3], atom_j[3])
+
+        tbl = "assign (segid {0[0]} and resi {0[1]} and name {0[2]}) ".format(atom_i)
+        tbl += "(segid {0[0]} and resi {0[1]} and name {0[2]}) ".format(atom_j)
+        tbl += "{0:3.3f} 0.0 0.0".format(dist_ij)
+        result += tbl + "\n"
+    return result
+
+@click.group(chain=True)
+def app():
+    return True
+
+def restrain(antibody: Path) -> str:
+    atom_lst = read_structure(str(antibody))
+    restraints = build_restraints(get_bodies(atom_lst))
+    return make_tbl(atom_lst, restraints)
+
+
+@app.command("restrain")
+@click.option('--antibody', type=click.Path(exists=True), help='')
+def restrain_command(antibody: str) -> str:
+    return restrain(Path(antibody))
+
+
+def apply_cutoff(access_data, cutoff: float):
+    """Apply a cutoff to the sidechain relative accessibility and display on stdout"""
+    print(f'Applying cutoff to side_chain_rel - {cutoff}')
+    def chain_result(chain) -> list:
+        result_list = []
+        for res in access_data[chain]:
+            sidechain_relative_accessibility = access_data[chain][res]['side_chain_rel']
+            if sidechain_relative_accessibility >= cutoff * 100:
+                result_list.append(res)
+        result = list(set(result_list))
+        result.sort()
+        return result
+    return seq(access_data).map(chain_result).to_list()
+
+
+def access(pdb: str, cutoff: float):
+    access_dic = calc_accessibility.get_accessibility(pdb)
+    return apply_cutoff(access_dic, cutoff)[0]
+
+
+@app.command("access")
+@click.option('--pdb', type=click.Path(exists=True), help='pdb file to compute accessibility for')
+@click.option('--cutoff', default=0.15, help="access") #0.4 in the tutorial
+def access_command(pdb: str, cutoff: float = 0.15):
+    return access(pdb, cutoff)
+
+def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: str = "/data/sources/haddock2.4", n_comp: str = 2, run_number: int =1 ):
+    return f'''AMBIG_TBL={str(ambig)}
+HADDOCK_DIR=f{haddock_dir}
+N_COMP={n_comp}
+PDB_FILE1={str(a.resolve())}
+PDB_FILE2={str(b.resolve())}
+PROJECT_DIR={project}
+PROT_SEGID_1=A
+PROT_SEGID_2=B
+RUN_NUMBER={run_number}
+UNAMBIG_TBL={str(unambig)}
+    '''
+
+@app.command()
+@click.option('--antibody', type=click.Path(exists=True), help='pdb file or a folder with pdb files to run protocol at, for example 4G6K.pdb (file) or my_antibodies (folder)')
+@click.option('--antigen', type=click.Path(), help='pdb file with the antigen')
+@click.option('--output', default="output", help='output folder to store results')
+@click.option('--scheme', default="c", help="numbering scheme")
+@click.option('--fvonly', default=True, help="use only fv region")
+@click.option('--rename', default=True, help="renaming")
+@click.option('--splitscfv', default=True, help="splitscfv")
+@click.option('--chain', default="A", help="chain to extract active regions from")
+@click.option('--delete_intermediate', default=False, help="Delete intermediate files")
+@click.option('--cutoff', default=0.15, help="access") #0.4 in the tutorial
+@click.option('--antigen_cutoff', default=0.15, help="access") #0.4 in the tutorial
+@click.option("--haddock_dir", default="/data/sources/haddock2.4", help="folder where haddock is located")
+@click.option("--n_comp", default =2, help = "N_COMP")
+@click.option("--run_number", default = 2, help = "run_number")
+def start(antibody: str, antigen: str, output: str,
+        scheme: str, fvonly: bool, rename: bool,
+        splitscfv: bool, chain: str,
+        delete_intermediate: bool, cutoff: float, antigen_cutoff: float,
+        haddock_dir: str, n_comp: str, run_number: int):
+    print(f"calling run with {antibody} antibody and {antigen} antigen where output is {output}")
+    antibody_path = Path(antibody)
+    output_path = Path(output)
+    output_path.mkdir(exist_ok=True)
+    pdb_name = antibody_path.name
+    result_pdb = run.process_pdb(antibody_path, output_path, scheme, fvonly, rename, splitscfv, chain, delete_intermediate)
+    chains_restrain = restrain(result_pdb)
+    unambig = (output_path / "antibody-unambig.tbl")
+    unambig.write_text(chains_restrain)
+    active = pd.read_csv(output_path / pdb_name.replace(".pdb", f"_active_sites.txt"), header=None).values.tolist()[0]
+    print(active)
+    ares = access(str(result_pdb), cutoff)
+    acc_residues = np.array(ares, dtype=int8)
+    intersection = np.intersect1d(active, acc_residues)
+    active_passive_antibody = output_path / pdb_name.replace(".pdb", f"_antibody_active_passive.txt")
+    antibody_active_solv = intersection.tolist()
+    with active_passive_antibody.open("w") as antibody_f:
+        antibody_f.write(" ".join([str(i) for i in antibody_active_solv]) + "\n")
+    antigen_path = Path(antigen)
+    ares_antigen = access(str(result_pdb), antigen_cutoff)
+    print("===========")
+    ares_antigen_str = ' '.join([str(i) for i in ares_antigen])
+    print("passive residues of the antigen are: " + "".join(ares_antigen_str))
+    active_passive_antigen = output_path / antigen_path.name.replace(".pdb", f"_antigen_active_passive.txt")
+    with active_passive_antigen.open("w") as antigen_f:
+        antigen_f.write("\n" + ares_antigen_str)
+    passive_active = active_passive_to_ambig(antibody_active_solv, [], [], ares_antigen)
+    ambig = (output_path / "antibody-antigen-ambig.tbl")
+    with ambig.open("w") as af:
+        af.write(passive_active)
+    run_str = run_params(result_pdb, antigen_path, ambig, unambig, output_path, haddock_dir, n_comp, run_number)
+    run_file = (output_path / "run.param")
+    print("writing run parameters")
+    with run_file.open("w") as f:
+        f.write(run_str)
+    return run_file
+
+
+
+if __name__ == '__main__':
+    app()
