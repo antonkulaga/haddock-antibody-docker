@@ -175,7 +175,7 @@ def start(antibody: str, antigen: str, output: str,
     chains_restrain = restrain(result_pdb)
     unambig = (output_path / "antibody-unambig.tbl")
     unambig.write_text(chains_restrain)
-    active = pd.read_csv(output_path / pdb_name.replace(".pdb", f"_active_sites.txt"), header=None).values.tolist()[0]
+    active = pd.read_csv(output_path / pdb_name.replace(".pdb", f"_active.txt"), header=None).values.tolist()[0]
     print(active)
     ares = access(str(result_pdb), cutoff)
     acc_residues = np.array(ares, dtype=int8)
