@@ -40,6 +40,7 @@ task prepare {
 
     runtime {
         docker: "quay.io/antonkulaga/haddock-antibody:latest"
+        shell: "/usr/local/bin/_entrypoint.sh"
     }
 
     output {
