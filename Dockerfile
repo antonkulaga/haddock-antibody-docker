@@ -15,7 +15,7 @@ RUN micromamba env create -y -f $BASE/environment.yaml
 ENV ENV_NAME=haddock-antibody
 ENV PATH="$PATH:$BASE"
 RUN mkdir /data && chmod -R 777 /data
-RUN chmod +x /usr/local/bin/_entrypoint.sh
+RUN chown root:root /usr/local/bin/_entrypoint.sh && chmod +x /usr/local/bin/_entrypoint.sh
 VOLUME ["/data"]
 WORKDIR /data
 COPY start.py $BASE/start.py
