@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import sys
+from typing import Union
+
 import click
 from pathlib import Path
 
@@ -8,10 +10,13 @@ import pandas as pd
 from functional import seq
 from numpy import int8
 
+from beartype import beartype
+
 script_folder = Path(__file__).parent.resolve()
 print(script_folder)
 sys.path.append(str((script_folder / 'haddock-antibody')))
 sys.path.append(str((script_folder / 'haddock-tools')))
+
 import run
 from run import process_pdb, tidy_up
 from restrain_bodies import read_structure, build_restraints, calc_euclidean, get_bodies, generate_tbl
@@ -95,6 +100,8 @@ def make_tbl(atom_lst: list, restraints: list) -> str:
 def app():
     return True
 
+
+@beartype
 def restrain(antibody: Path) -> str:
     atom_lst = read_structure(str(antibody))
     restraints = build_restraints(get_bodies(atom_lst))
@@ -107,6 +114,7 @@ def restrain_command(antibody: str) -> str:
     return restrain(Path(antibody))
 
 
+@beartype
 def apply_cutoff(access_data, cutoff: float):
     """Apply a cutoff to the sidechain relative accessibility and display on stdout"""
     print(f'Applying cutoff to side_chain_rel - {cutoff}')
@@ -133,7 +141,29 @@ def access(pdb: str, cutoff: float):
 def access_command(pdb: str, cutoff: float = 0.15):
     return access(pdb, cutoff)
 
-def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"), n_comp: str = 2, run_number: int =1 ):
+
+@app.command("run_param")
+@click.option('--antibody', type=click.Path(exists=True), help='pdb')
+@click.option('--antigen', type=click.Path(exists=True), help='pdb')
+@click.option('--ambig', type=click.Path(exists=True), help='amibg')
+@click.option('--unambig', type=click.Path(exists=True), help="unambig")
+@click.option('--project', type=click.Path(exists=True), help="project")
+@click.option("--haddock_dir", default="/data/sources/haddock2.4", help="folder where haddock is located")
+@click.option("--n_comp", default=2, help="N_COMP")
+@click.option("--run_number", default=1, help="run_number")
+def run_params_command(antibody: str, antigen: str, ambig: str, unambig: str, project: str, haddock_dir: Path = Path("/data/sources/haddock2.4"), n_comp: Union[str, int] = 2, run_number: Union[int, str] =1) -> Path:
+    #run_params(result_pdb, antigen_path, ambig, unambig, output_path.absolute(), Path(haddock_dir), n_comp, run_number)
+    params =  run_params(Path(antibody), Path(antigen), Path(ambig), Path(unambig), Path(project), Path(haddock_dir), n_comp, run_number)
+    path = Path("run.param")
+    with path.open("w") as f:
+        f.write(params)
+    print(f"run.param are: \n {params}")
+    return path
+
+
+@beartype
+def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"),
+               n_comp: Union[str, int] = 2, run_number: Union[int, str] =1 ):
     return f'''AMBIG_TBL={str(ambig.resolve())}
 HADDOCK_DIR={haddock_dir.resolve()}
 N_COMP={n_comp}

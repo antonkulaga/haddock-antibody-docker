@@ -15,6 +15,7 @@ dependencies:
   - hmmer=3.3.2
   - pip=21.3.1
   - click=8.0.3
+  - beartype
   - pip:
       - pdb-tools==2.4.1
       - freesasa==2.1.0

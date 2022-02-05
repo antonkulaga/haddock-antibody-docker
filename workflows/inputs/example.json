@@ -1,6 +1,6 @@
 {
   "haddock_antibody.name": "gevokizumab",
-  "haddock_antibody.destination": "/data/samples/docking/",
+  "haddock_antibody.destination": "/data/samples/docking",
   "haddock_antibody.antigen": "/data/sources/haddock2.4/examples/tutorial/4I1B.pdb",
   "haddock_antibody.antibody": "/data/sources/haddock2.4/examples/tutorial/4g6k.pdb"
 }
