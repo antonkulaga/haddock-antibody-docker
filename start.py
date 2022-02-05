@@ -161,9 +161,10 @@ def run_params_command(antibody: str, antigen: str, ambig: str, unambig: str, pr
     return path
 
 
+
 @beartype
 def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"),
-               n_comp: Union[str, int] = 2, run_number: Union[int, str] =1 ):
+               n_comp: Union[str, int] = 2, run_number: Union[int, str] =1):
     return f'''AMBIG_TBL={str(ambig.resolve())}
 HADDOCK_DIR={haddock_dir.resolve()}
 N_COMP={n_comp}
@@ -176,10 +177,16 @@ RUN_NUMBER={run_number}
 UNAMBIG_TBL={str(unambig.resolve())}
     '''
 
+@beartype
+def run_params_in_project(project: Path, a: Path, b: Path, ambig: Path, unambig: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"),
+                          n_comp: Union[str, int] = 2, run_number: Union[int, str] =1):
+    return run_params(project / a.name, project / b.name, project / ambig.name, project / unambig.name, project, haddock_dir, n_comp, run_number)
+
 @app.command()
 @click.option('--antibody', type=click.Path(exists=True), help='pdb file or a folder with pdb files to run protocol at, for example 4G6K.pdb (file) or my_antibodies (folder)')
 @click.option('--antigen', type=click.Path(), help='pdb file with the antigen')
 @click.option('--output', default="output", help='output folder to store results')
+@click.option('--project', type=click.Path(exists=False), default=None, help = "project path to generate")
 @click.option('--scheme', default="c", help="numbering scheme")
 @click.option('--fvonly', default=True, help="use only fv region")
 @click.option('--rename', default=True, help="renaming")
@@ -192,7 +199,7 @@ UNAMBIG_TBL={str(unambig.resolve())}
 @click.option("--n_comp", default =2, help = "N_COMP")
 @click.option("--run_number", default = 1, help = "run_number")
 def start(antibody: str, antigen: str, output: str,
-        scheme: str, fvonly: bool, rename: bool,
+          project: str, scheme: str, fvonly: bool, rename: bool,
         splitscfv: bool, chain: str,
         delete_intermediate: bool, cutoff: float, antigen_cutoff: float,
         haddock_dir: str, n_comp: str, run_number: int):
@@ -227,8 +234,10 @@ def start(antibody: str, antigen: str, output: str,
     ambig = (output_path / "antibody-antigen-ambig.tbl")
     with ambig.open("w") as af:
         af.write(passive_active)
-
-    run_str = run_params(result_pdb, antigen_path, ambig, unambig, output_path.absolute(), Path(haddock_dir), n_comp, run_number)
+    if project is None:
+        run_str = run_params(result_pdb, antigen_path, ambig, unambig, output_path.absolute(), Path(haddock_dir), n_comp, run_number)
+    else:
+        run_str = run_params_in_project(Path(project), result_pdb, antigen_path, ambig, unambig, Path(haddock_dir), n_comp, run_number)
     run_file = (output_path / "run.param")
     print(f"writing run parameters to {str(run_file)}")
     with run_file.open("w") as f:
