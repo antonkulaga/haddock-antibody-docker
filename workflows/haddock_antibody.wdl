@@ -15,7 +15,8 @@ workflow haddock_antibody {
         input:
             output_name = name,
             antibody = antibody,
-            antigen = antigen
+            antigen = antigen,
+            destination = destination
     }
 
     call files.copy as copy_antibody{
@@ -39,7 +40,6 @@ workflow haddock_antibody {
         File run_param = copy_antibody.out[4]
         File antigen_active_passive = copy_antibody.out[5]
         File antibody_active_passive = copy_antibody.out[6]
-
     }
 
 }
@@ -62,7 +62,7 @@ task prepare {
     }
 
     runtime {
-        docker: "quay.io/antonkulaga/haddock-antibody@sha256:077e5b7440ac0dd0a5f841ee90ede0d8f50b344f47dc1513bd0912ee1b25c998"
+        docker: "quay.io/antonkulaga/haddock-antibody@sha256:5f24266f159ed6bc0c9325559d94133d2cc6070f560292dc658640638f89ca45"
         shell: "/usr/local/bin/_entrypoint.sh"
     }
 
