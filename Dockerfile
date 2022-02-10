@@ -1,7 +1,7 @@
 FROM mambaorg/micromamba:latest
 #non-root user of the mambaorg/micromamba is buggy, so we fallback to root
 USER root
-RUN apt-get update && apt-get install -y git acl libxml2-dev build-essential libcurl4-openssl-dev pkg-config m4 libtool automake autoconf libjson-c-dev libgl1-mesa-dev libgl-dev libc++-11-dev libc++abi-11-dev
+RUN apt-get update && apt-get install -y git wget acl libxml2-dev build-essential libcurl4-openssl-dev pkg-config m4 libtool automake autoconf libjson-c-dev libgl1-mesa-dev libgl-dev libc++-11-dev libc++abi-11-dev
 ENV BASE=/opt
 WORKDIR $BASE
 RUN git clone https://github.com/haddocking/haddock-tools

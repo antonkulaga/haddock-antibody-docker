@@ -80,6 +80,7 @@ def active_passive_to_ambig(active1: list, passive1: list, active2: list, passiv
         result += ') 2.0 2.0 0.0\n'
     return result
 
+
 def make_tbl(atom_lst: list, restraints: list) -> str:
     """
     Makes a list of TBL-formatted restraints.
@@ -96,6 +97,7 @@ def make_tbl(atom_lst: list, restraints: list) -> str:
         result += tbl + "\n"
     return result
 
+
 @click.group(chain=True)
 def app():
     return True
@@ -109,7 +111,7 @@ def restrain(antibody: Path) -> str:
 
 
 @app.command("restrain")
-@click.option('--antibody', type=click.Path(exists=True), help='')
+@click.option('--antibody', type=click.Path(exists=True), help='antibody pdb')
 def restrain_command(antibody: str) -> str:
     return restrain(Path(antibody))
 
