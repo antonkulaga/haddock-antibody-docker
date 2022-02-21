@@ -11,6 +11,8 @@ from functional import seq
 from numpy import int8
 
 from beartype import beartype
+from Bio import SeqIO
+
 
 script_folder = Path(__file__).parent.resolve()
 print(script_folder)
@@ -105,6 +107,11 @@ def app():
 
 @beartype
 def restrain(antibody: Path) -> str:
+    """
+    generates restrains tbl for the antibody
+    :param antibody:
+    :return:
+    """
     atom_lst = read_structure(str(antibody))
     restraints = build_restraints(get_bodies(atom_lst))
     return make_tbl(atom_lst, restraints)
@@ -163,7 +170,6 @@ def run_params_command(antibody: str, antigen: str, ambig: str, unambig: str, pr
     return path
 
 
-
 @beartype
 def run_params(a: Path, b: Path, ambig: Path, unambig: Path, project: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"),
                n_comp: Union[str, int] = 2, run_number: Union[int, str] =1):
@@ -179,12 +185,59 @@ RUN_NUMBER={run_number}
 UNAMBIG_TBL={str(unambig.resolve())}
     '''
 
+
 @beartype
 def run_params_in_project(project: Path, a: Path, b: Path, ambig: Path, unambig: Path, haddock_dir: Path = Path("/data/sources/haddock2.4"),
                           n_comp: Union[str, int] = 2, run_number: Union[int, str] =1):
     return run_params(project / a.name, project / b.name, project / ambig.name, project / unambig.name, project, haddock_dir, n_comp, run_number)
 
-@app.command()
+
+def pdb_2_fasta(pdb_file: Path, where: Path):
+    print(f"extracting fasta from {pdb_file} to {where}")
+    name = pdb_file.stem
+    with pdb_file.open("r") as pdb_file:
+        sequences = [record for record in SeqIO.parse(pdb_file, 'pdb-atom')]
+    with where.open("w+") as fasta:
+        for sequence in sequences:
+            #for chain in sequence.
+            #where.write_text(">" + sequence.id.replace("????:", name +":") + "\n"+str(sequence._seq))
+            SeqIO.write(sequence, fasta, "fasta")
+
+#for example start.py extract_fv
+@app.command("extract_fv")
+@click.argument("folder", type=click.Path(exists=True))
+@click.option('--output', default="output", help='output folder to store results')
+@click.option('--scheme', default="c", help="numbering scheme")
+@click.option('--mode', default="all", help="also extracts fasta sequences")
+@click.option('--chain', default="A", help="chain to extract active regions from")
+@click.option('--rename', default=True, help="renaming")
+def extract_fv(folder: str, output: str, scheme: str, mode: str, chain: str, rename: bool) -> Path:
+    print(f"extract_fv for {folder}, the results will be extracted to {output}")
+    pdb_path = Path(folder)
+    output_path = Path(output)
+    output_path.mkdir(exist_ok=True)
+    print(f"{str(pdb_path)} is folder, processing all subfolders and pdb files inside of it!")
+    for child in pdb_path.iterdir():
+        output_subpath = output_path / child.name
+        if child.is_dir() and not child.is_symlink() and any(child.iterdir()):
+            print("FOLDER")
+            output_subpath.mkdir(exist_ok=True)
+            #run.process_folder(child, output_subpath, scheme, True, rename, True, chain, True)
+            extract_fv(str(child), str(output_subpath), scheme, fasta, chain, rename)
+        elif child.is_file() and "pdb" in child.suffix:
+            print("FILE")
+            try:
+                print(f"TRYING {child}")
+                pdb = child if mode == "just_fasta" else run.process_pdb(child, output_path, scheme, True, True, rename, chain, True)
+                if mode != "no_fasta":
+                    pdb_2_fasta(pdb, output_path / (pdb.stem + ".fasta"))
+            except BaseException as e:
+                print(f"pdb {child.name} FAILED, exception is {e}")
+                continue
+    return output_path
+
+
+@app.command("start")
 @click.option('--antibody', type=click.Path(exists=True), help='pdb file or a folder with pdb files to run protocol at, for example 4G6K.pdb (file) or my_antibodies (folder)')
 @click.option('--antigen', type=click.Path(), help='pdb file with the antigen')
 @click.option('--output', default="output", help='output folder to store results')

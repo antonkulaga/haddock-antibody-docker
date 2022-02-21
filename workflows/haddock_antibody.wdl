@@ -62,7 +62,7 @@ task prepare {
     }
 
     runtime {
-        docker: "quay.io/antonkulaga/haddock-antibody@sha256:5f24266f159ed6bc0c9325559d94133d2cc6070f560292dc658640638f89ca45"
+        docker: "quay.io/antonkulaga/haddock-antibody"
         shell: "/usr/local/bin/_entrypoint.sh"
     }
 
