@@ -18,5 +18,6 @@ RUN mkdir /data && chmod -R 777 /data
 RUN chown root:root /usr/local/bin/_entrypoint.sh && chmod +x /usr/local/bin/_entrypoint.sh
 VOLUME ["/data"]
 WORKDIR /data
+COPY extract_fasta.py $BASE/extract_fasta.py
 COPY start.py $BASE/start.py
 CMD python $BASE/start.py

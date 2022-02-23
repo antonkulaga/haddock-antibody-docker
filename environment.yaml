@@ -20,3 +20,4 @@ dependencies:
       - pdb-tools==2.4.1
       - freesasa==2.1.0
       - pyfunctional==1.4.3
+      - pycomfort

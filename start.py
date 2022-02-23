@@ -194,61 +194,6 @@ def run_params_in_project(project: Path, a: Path, b: Path, ambig: Path, unambig:
     return run_params(project / a.name, project / b.name, project / ambig.name, project / unambig.name, project, haddock_dir, n_comp, run_number)
 
 
-@beartype
-def pdb_to_fasta(pdf_path: Path) -> OrderedDict:
-    def map_chain(record: Bio.SeqRecord.SeqRecord) -> dict:
-        record.id = record.id.replace("????:", ":")
-        record.id = record.id.replace("????:", ":")
-        return record.id[1:], record.seq
-    with pdf_path.open("r") as pdb_file:
-        sequences = seq([s for s in SeqIO.parse(pdb_file, 'pdb-atom')]).map(map_chain)
-        #assert len(sequences) == 2, "antibody has only one chain!"
-    return OrderedDict(sequences)
-
-
-@beartype
-def write_fasta_pdb(pdb_path: Path, where: Path) -> Path:
-    d = pdb_to_fasta(pdb_path)
-    with where.open("w") as f:
-        for k,v in d.items():
-            f.write(f">:{k}\n")
-            f.write(f"{str(v)}\n")
-    return where
-
-#for example start.py extract_fv
-@app.command("extract_fv")
-@click.argument("folder", type=click.Path(exists=True))
-@click.option('--output', default="output", help='output folder to store results')
-@click.option('--scheme', default="c", help="numbering scheme")
-@click.option('--mode', default="all", help="also extracts fasta sequences")
-@click.option('--chain', default="H", help="chain to extract active regions from")
-@click.option('--rename', default=True, help="renaming")
-def extract_fv(folder: str, output: str, scheme: str, mode: str, chain: str, rename: bool) -> Path:
-    print(f"extract_fv for {folder}, the results will be extracted to {output}")
-    pdb_path = Path(folder)
-    output_path = Path(output)
-    output_path.mkdir(exist_ok=True)
-    print(f"{str(pdb_path)} is folder, processing all subfolders and pdb files inside of it!")
-    for child in pdb_path.iterdir():
-        output_subpath = output_path / child.name
-        if child.is_dir() and not child.is_symlink() and any(child.iterdir()):
-            print("FOLDER")
-            output_subpath.mkdir(exist_ok=True)
-            #run.process_folder(child, output_subpath, scheme, True, rename, True, chain, True)
-            extract_fv(str(child), str(output_subpath), scheme, mode, chain, rename)
-        elif child.is_file() and "pdb" in child.suffix:
-            print("FILE")
-            try:
-                print(f"TRYING {child}")
-                pdb = child if mode == "just_fasta" else run.process_pdb(child, output_path, scheme, True, True, rename, chain, True)
-                if mode != "no_fasta":
-                    write_fasta_pdb(pdb, output_path / (pdb.stem + ".fasta"))
-            except BaseException as e:
-                print(f"pdb {child.name} FAILED, exception is {e}")
-                continue
-    return output_path
-
-
 @app.command("start")
 @click.option('--antibody', type=click.Path(exists=True), help='pdb file or a folder with pdb files to run protocol at, for example 4G6K.pdb (file) or my_antibodies (folder)')
 @click.option('--antigen', type=click.Path(), help='pdb file with the antigen')
