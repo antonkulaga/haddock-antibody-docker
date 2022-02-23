@@ -262,7 +262,7 @@ def extract_fv(folder: str, output: str, scheme: str, mode: str, chain: str, ren
 @click.option('--delete_intermediate', default=False, help="Delete intermediate files")
 @click.option('--cutoff', default=0.15, help="access") #0.4 in the tutorial
 @click.option('--antigen_cutoff', default=0.15, help="access") #0.4 in the tutorial
-@click.option("--haddock_dir", default="/data/sources/haddock2.4", help="folder where haddock is located")
+@click.option("--haddock_dir", default="/opt/haddock2.4", help="folder where haddock is located")
 @click.option("--n_comp", default =2, help = "N_COMP")
 @click.option("--run_number", default = 1, help = "run_number")
 def start(antibody: str, antigen: str, output: str,

@@ -1,6 +1,6 @@
 {
   "haddock_antibody.name": "1WEJ" ,
   "haddock_antibody.destination": "/data/samples/docking/benchmarks/results",
-  "haddock_antibody.antigen": "/data/samples/docking/benchmarks/fabs/antibodies/1WEJ_l_u.pdb",
+  "haddock_antibody.antigen": "/data/samples/docking/benchmarks/fabs/antigens/1WEJ_l_u.pdb",
   "haddock_antibody.antibody": "/data/samples/docking/benchmarks/fabs/antibodies/1WEJ_r_u.pdb"
 }

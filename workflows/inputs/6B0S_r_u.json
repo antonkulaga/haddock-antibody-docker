@@ -1,6 +1,6 @@
 {
   "haddock_antibody.name": "6B0S" ,
   "haddock_antibody.destination": "/data/samples/docking/benchmarks/results",
-  "haddock_antibody.antigen": "/data/samples/docking/benchmarks/fabs/antibodies/6B0S_l_u.pdb",
+  "haddock_antibody.antigen": "/data/samples/docking/benchmarks/fabs/antigens/6B0S_l_u.pdb",
   "haddock_antibody.antibody": "/data/samples/docking/benchmarks/fabs/antibodies/6B0S_r_u.pdb"
 }
