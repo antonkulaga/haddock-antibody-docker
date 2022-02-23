@@ -11,7 +11,9 @@ from functional import seq
 from numpy import int8
 
 from beartype import beartype
+import Bio
 from Bio import SeqIO
+from collections import OrderedDict
 
 
 script_folder = Path(__file__).parent.resolve()
@@ -192,16 +194,26 @@ def run_params_in_project(project: Path, a: Path, b: Path, ambig: Path, unambig:
     return run_params(project / a.name, project / b.name, project / ambig.name, project / unambig.name, project, haddock_dir, n_comp, run_number)
 
 
-def pdb_2_fasta(pdb_file: Path, where: Path):
-    print(f"extracting fasta from {pdb_file} to {where}")
-    name = pdb_file.stem
-    with pdb_file.open("r") as pdb_file:
-        sequences = [record for record in SeqIO.parse(pdb_file, 'pdb-atom')]
-    with where.open("w+") as fasta:
-        for sequence in sequences:
-            #for chain in sequence.
-            #where.write_text(">" + sequence.id.replace("????:", name +":") + "\n"+str(sequence._seq))
-            SeqIO.write(sequence, fasta, "fasta")
+@beartype
+def pdb_to_fasta(pdf_path: Path) -> OrderedDict:
+    def map_chain(record: Bio.SeqRecord.SeqRecord) -> dict:
+        record.id = record.id.replace("????:", ":")
+        record.id = record.id.replace("????:", ":")
+        return record.id[1:], record.seq
+    with pdf_path.open("r") as pdb_file:
+        sequences = seq([s for s in SeqIO.parse(pdb_file, 'pdb-atom')]).map(map_chain)
+        #assert len(sequences) == 2, "antibody has only one chain!"
+    return OrderedDict(sequences)
+
+
+@beartype
+def write_fasta_pdb(pdb_path: Path, where: Path) -> Path:
+    d = pdb_to_fasta(pdb_path)
+    with where.open("w") as f:
+        for k,v in d.items():
+            f.write(f">:{k}\n")
+            f.write(f"{str(v)}\n")
+    return where
 
 #for example start.py extract_fv
 @app.command("extract_fv")
@@ -209,7 +221,7 @@ def pdb_2_fasta(pdb_file: Path, where: Path):
 @click.option('--output', default="output", help='output folder to store results')
 @click.option('--scheme', default="c", help="numbering scheme")
 @click.option('--mode', default="all", help="also extracts fasta sequences")
-@click.option('--chain', default="A", help="chain to extract active regions from")
+@click.option('--chain', default="H", help="chain to extract active regions from")
 @click.option('--rename', default=True, help="renaming")
 def extract_fv(folder: str, output: str, scheme: str, mode: str, chain: str, rename: bool) -> Path:
     print(f"extract_fv for {folder}, the results will be extracted to {output}")
@@ -223,14 +235,14 @@ def extract_fv(folder: str, output: str, scheme: str, mode: str, chain: str, ren
             print("FOLDER")
             output_subpath.mkdir(exist_ok=True)
             #run.process_folder(child, output_subpath, scheme, True, rename, True, chain, True)
-            extract_fv(str(child), str(output_subpath), scheme, fasta, chain, rename)
+            extract_fv(str(child), str(output_subpath), scheme, mode, chain, rename)
         elif child.is_file() and "pdb" in child.suffix:
             print("FILE")
             try:
                 print(f"TRYING {child}")
                 pdb = child if mode == "just_fasta" else run.process_pdb(child, output_path, scheme, True, True, rename, chain, True)
                 if mode != "no_fasta":
-                    pdb_2_fasta(pdb, output_path / (pdb.stem + ".fasta"))
+                    write_fasta_pdb(pdb, output_path / (pdb.stem + ".fasta"))
             except BaseException as e:
                 print(f"pdb {child.name} FAILED, exception is {e}")
                 continue
@@ -246,7 +258,7 @@ def extract_fv(folder: str, output: str, scheme: str, mode: str, chain: str, ren
 @click.option('--fvonly', default=True, help="use only fv region")
 @click.option('--rename', default=True, help="renaming")
 @click.option('--splitscfv', default=True, help="splitscfv")
-@click.option('--chain', default="A", help="chain to extract active regions from")
+@click.option('--chain', default="H", help="chain to extract active regions from")
 @click.option('--delete_intermediate', default=False, help="Delete intermediate files")
 @click.option('--cutoff', default=0.15, help="access") #0.4 in the tutorial
 @click.option('--antigen_cutoff', default=0.15, help="access") #0.4 in the tutorial
