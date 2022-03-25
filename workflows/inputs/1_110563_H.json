@@ -1,0 +1,7 @@
+{
+  "haddock_antibody.name": "1_110563_H",
+  "haddock_antibody.destination": "/data/samples/docking/RA/results",
+  "haddock_antibody.antibody": "/data/samples/docking/RA/1_110563_HOut.pdb",
+  "haddock_antibody.antigen": "/data/samples/docking/RA/antigen.pdb",
+  "haddock_antibody.heavy_only": true
+}
