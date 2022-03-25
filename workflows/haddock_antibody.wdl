@@ -11,6 +11,7 @@ workflow haddock_antibody {
         Int run_number = 1
         String scheme = "c"
         Boolean heavy_only = false
+        Float antibody_cutoff = 0.0
     }
 
     call prepare {
@@ -20,7 +21,8 @@ workflow haddock_antibody {
             antigen = antigen,
             scheme = scheme,
             destination = destination,
-            heavy_only = heavy_only
+            heavy_only = heavy_only,
+            antibody_cutoff = antibody_cutoff
     }
 
     call files.copy as copy_antibody{
@@ -57,6 +59,7 @@ task prepare {
         String destination
         String scheme = "c"
         Boolean heavy_only
+        Float antibody_cutoff = 0.0
     }
 
     String antigen_name = basename(antigen, ".pdb")
@@ -64,7 +67,7 @@ task prepare {
 
 
     command {
-        start.py start --scheme ~{scheme} --antibody ~{antibody} --antigen ~{antigen} ~{if(heavy_only) then "--heavy_only true" else ""} --output ~{output_name} --project ~{destination}/~{output_name}
+        start.py start --scheme ~{scheme} --cutoff ~{antibody_cutoff} --antibody ~{antibody} --antigen ~{antigen} ~{if(heavy_only) then "--heavy_only true" else ""} --output ~{output_name} --project ~{destination}/~{output_name}
     }
 
     runtime {

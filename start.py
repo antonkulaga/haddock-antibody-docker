@@ -18,7 +18,6 @@ sys.path.append(str((script_folder / 'haddock-tools')))
 import run
 from run import tidy_up
 from restrain_bodies import read_structure, build_restraints, calc_euclidean, get_bodies
-
 calc_accessibility = __import__("calc-accessibility")
 
 #rewrote in a proper way
@@ -221,16 +220,19 @@ def start(antibody: str, antigen: str, output: str,
     unambig.write_text(chains_restrain)
     active = pd.read_csv(output_path / pdb_name.replace(".pdb", f"_active.txt"), header=None).values.tolist()[0]
     print(active)
-    ares = access(str(result_pdb), cutoff)
-    acc_residues = np.array(ares, dtype=int8)
-    intersection = np.intersect1d(active, acc_residues)
     active_passive_antibody = output_path / pdb_name.replace(".pdb", f"_antibody_active_passive.txt")
-    antibody_active_solv = intersection.tolist()
+    if cutoff > 0:
+        ares = access(str(result_pdb), cutoff)
+        acc_residues = np.array(ares, dtype=int8)
+        intersection = np.intersect1d(active, acc_residues)
+        antibody_active_solv = intersection.tolist()
+    else:
+        antibody_active_solv = active
     with active_passive_antibody.open("w") as antibody_f:
         antibody_f.write(" ".join([str(i) for i in antibody_active_solv]) + "\n")
     antigen_path = (output_path / Path(antigen).name.replace(".pdb", f"_tidy.pdb")).resolve()
     tidy_up(Path(antigen), antigen_path)
-    ares_antigen = access(str(result_pdb), antigen_cutoff)
+    ares_antigen = access(str(antigen_path), antigen_cutoff)
     print("===========")
     ares_antigen_str = ' '.join([str(i) for i in ares_antigen])
     print("passive residues of the antigen are: " + "".join(ares_antigen_str))

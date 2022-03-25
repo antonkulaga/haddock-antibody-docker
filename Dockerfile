@@ -8,7 +8,7 @@ RUN git clone https://github.com/haddocking/haddock-tools
 WORKDIR $BASE/haddock-tools
 RUN make
 WORKDIR $BASE
-RUN git clone https://github.com/haddocking/HADDOCK-antibody-antigen haddock-antibody
+RUN git clone https://github.com/antonkulaga/HADDOCK-antibody-antigen.git haddock-antibody
 ENV PATH="$PATH:$BASE/haddock-antibody"
 COPY environment.yaml $BASE/environment.yaml
 RUN micromamba env create -y -f $BASE/environment.yaml

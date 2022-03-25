@@ -1,0 +1,11 @@
+AMBIG_TBL=/data/samples/docking/RA/results/1_110563_H/antibody-antigen-ambig.tbl
+HADDOCK_DIR=/opt/haddock2.4
+N_COMP=2
+PDB_FILE1=/data/samples/docking/RA/results/1_110563_H/1_110563_HOut_HADDOCK_tidy.pdb
+PDB_FILE2=/data/samples/docking/RA/results/1_110563_H/antigen_tidy.pdb
+PROJECT_DIR=/data/samples/docking/RA/results/1_110563_H
+PROT_SEGID_1=A
+PROT_SEGID_2=B
+RUN_NUMBER=1
+UNAMBIG_TBL=/data/samples/docking/RA/results/1_110563_H/antibody-unambig.tbl
+    
