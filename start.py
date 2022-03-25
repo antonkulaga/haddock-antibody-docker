@@ -1,20 +1,14 @@
 #!/usr/bin/env python
 import sys
+from pathlib import Path
 from typing import Union
 
 import click
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
+from beartype import beartype
 from functional import seq
 from numpy import int8
-
-from beartype import beartype
-import Bio
-from Bio import SeqIO
-from collections import OrderedDict
-
 
 script_folder = Path(__file__).parent.resolve()
 print(script_folder)
@@ -22,8 +16,8 @@ sys.path.append(str((script_folder / 'haddock-antibody')))
 sys.path.append(str((script_folder / 'haddock-tools')))
 
 import run
-from run import process_pdb, tidy_up
-from restrain_bodies import read_structure, build_restraints, calc_euclidean, get_bodies, generate_tbl
+from run import tidy_up
+from restrain_bodies import read_structure, build_restraints, calc_euclidean, get_bodies
 
 calc_accessibility = __import__("calc-accessibility")
 
@@ -201,6 +195,7 @@ def run_params_in_project(project: Path, a: Path, b: Path, ambig: Path, unambig:
 @click.option('--project', type=click.Path(exists=False), default=None, help = "project path to generate")
 @click.option('--scheme', default="c", help="numbering scheme")
 @click.option('--fvonly', default=True, help="use only fv region")
+@click.option('--heavy_only', default=False, help="use only heavy chain")
 @click.option('--rename', default=True, help="renaming")
 @click.option('--splitscfv', default=True, help="splitscfv")
 @click.option('--chain', default="H", help="chain to extract active regions from")
@@ -211,7 +206,7 @@ def run_params_in_project(project: Path, a: Path, b: Path, ambig: Path, unambig:
 @click.option("--n_comp", default =2, help = "N_COMP")
 @click.option("--run_number", default = 1, help = "run_number")
 def start(antibody: str, antigen: str, output: str,
-          project: str, scheme: str, fvonly: bool, rename: bool,
+          project: str, scheme: str, fvonly: bool, heavy_only: bool, rename: bool,
         splitscfv: bool, chain: str,
         delete_intermediate: bool, cutoff: float, antigen_cutoff: float,
         haddock_dir: str, n_comp: str, run_number: int):
@@ -220,7 +215,7 @@ def start(antibody: str, antigen: str, output: str,
     output_path = Path(output)
     output_path.mkdir(exist_ok=True)
     pdb_name = antibody_path.name
-    result_pdb = run.process_pdb(antibody_path, output_path, scheme, fvonly, rename, splitscfv, chain, delete_intermediate)
+    result_pdb = run.process_pdb(antibody_path, output_path, scheme, fvonly, heavy_only, rename, splitscfv, chain, delete_intermediate)
     chains_restrain = restrain(result_pdb)
     unambig = (output_path / "antibody-unambig.tbl")
     unambig.write_text(chains_restrain)
